@@ -13,6 +13,11 @@
           </router-link>
         </li>
         <li class="nav-item">
+          <router-link class="nav-link text-white" :class="{ active: isActive('admin-categories') }" to="/admin/categories">
+            Categories
+          </router-link>
+        </li>
+        <li class="nav-item">
           <router-link class="nav-link text-white" :class="{ active: isActive('admin-orders') }" to="/admin/orders">
             Orders
           </router-link>

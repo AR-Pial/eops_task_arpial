@@ -6,7 +6,7 @@
         <DataTable class="table table-striped table-hover align-middle w-100" :options="tableOptions">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>#</th>
               <th>Order</th>
               <th>Provider</th>
               <th>Transaction</th>
@@ -18,7 +18,7 @@
           <tbody>
             <tr>
               <td>1</td>
-              <td>#101</td>
+              <td>101</td>
               <td>STRIPE</td>
               <td><code class="small">pi_3MxTestAbc123</code></td>
               <td><span class="badge text-bg-success">success</span></td>
@@ -27,7 +27,7 @@
             </tr>
             <tr>
               <td>2</td>
-              <td>#102</td>
+              <td>102</td>
               <td>BKASH</td>
               <td><code class="small">TRX987654321</code></td>
               <td><span class="badge text-bg-warning">pending</span></td>
@@ -36,7 +36,7 @@
             </tr>
             <tr>
               <td>3</td>
-              <td>#103</td>
+              <td>103</td>
               <td>STRIPE</td>
               <td><code class="small">pi_3MxFailXyz789</code></td>
               <td><span class="badge text-bg-danger">failed</span></td>
@@ -57,6 +57,7 @@ const tableOptions = {
   pageLength: 10,
   order: [[6, 'desc']],
   columnDefs: [
+    { orderable: false, searchable: false, targets: 0 },
     { orderable: false, targets: 5 },
     { className: 'text-start', targets: '_all' },
   ],

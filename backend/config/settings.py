@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "apps.accounts",
-    "apps.catalog",
+    "apps.products",
     "apps.orders",
     "apps.payments",
 ]
@@ -150,5 +150,18 @@ REST_FRAMEWORK = {
 CORS_ALLOW_ALL_ORIGINS = True  # tighten later for Vue/Vercel
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+
+# Payment providers (leave empty to use local mock flow for checkout confirm)
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+BKASH_APP_KEY = os.getenv("BKASH_APP_KEY", "")
+BKASH_APP_SECRET = os.getenv("BKASH_APP_SECRET", "")
+BKASH_USERNAME = os.getenv("BKASH_USERNAME", "")
+BKASH_PASSWORD = os.getenv("BKASH_PASSWORD", "")
+BKASH_BASE_URL = os.getenv(
+    "BKASH_BASE_URL",
+    "https://tokenized.sandbox.bka.sh/v1.2.0-beta",
+)
+BKASH_CALLBACK_URL = os.getenv("BKASH_CALLBACK_URL", "")
 
 

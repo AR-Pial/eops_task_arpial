@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import ProductDetailView from '../views/ProductDetailView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import CheckoutView from '../views/CheckoutView.vue'
@@ -8,6 +9,7 @@ import PaymentsView from '../views/PaymentsView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminProductsView from '../views/admin/AdminProductsView.vue'
+import AdminCategoriesView from '../views/admin/AdminCategoriesView.vue'
 import AdminOrdersView from '../views/admin/AdminOrdersView.vue'
 import AdminOrderDetailView from '../views/admin/AdminOrderDetailView.vue'
 import AdminPaymentsView from '../views/admin/AdminPaymentsView.vue'
@@ -19,6 +21,11 @@ const routes = [
     path: '/',
     name: 'home',
     component: HomeView,
+  },
+  {
+    path: '/products/:id',
+    name: 'product-detail',
+    component: ProductDetailView,
   },
   {
     path: '/checkout',
@@ -65,6 +72,12 @@ const routes = [
     path: '/admin/products',
     name: 'admin-products',
     component: AdminProductsView,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/categories',
+    name: 'admin-categories',
+    component: AdminCategoriesView,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

@@ -14,8 +14,7 @@
       <pre class="bg-light border p-3 rounded small mb-0">{
   "id": "pi_3MxTestAbc123",
   "status": "succeeded",
-  "amount": 12949,
-  "currency": "usd"
+  "amount": 12949
 }</pre>
     </div>
 
@@ -43,8 +42,7 @@
       <pre class="bg-light border p-3 rounded small mb-0">{
   "id": "pi_3MxFailXyz789",
   "status": "failed",
-  "amount": 6900,
-  "currency": "usd"
+  "amount": 6900
 }</pre>
     </div>
 

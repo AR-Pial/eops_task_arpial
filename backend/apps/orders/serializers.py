@@ -1,0 +1,90 @@
+from decimal import Decimal
+
+from django.db import transaction
+from rest_framework import serializers
+
+from apps.products.models import Product
+
+from .models import Order, OrderItem
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="product.name", read_only=True)
+    product_id = serializers.UUIDField(source="product.id", read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ("id", "product_id", "name", "quantity", "price", "subtotal")
+
+
+class OrderItemCreateSerializer(serializers.Serializer):
+    product_id = serializers.UUIDField()
+    quantity = serializers.IntegerField(min_value=1)
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = Order
+        fields = (
+            "id",
+            "user",
+            "user_email",
+            "total_amount",
+            "status",
+            "items",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class OrderCreateSerializer(serializers.Serializer):
+    items = OrderItemCreateSerializer(many=True)
+
+    def validate_items(self, value):
+        if not value:
+            raise serializers.ValidationError("Cart cannot be empty.")
+        return value
+
+    @transaction.atomic
+    def create(self, validated_data):
+        user = self.context["request"].user
+        order = Order.objects.create(user=user, status=Order.Status.PENDING)
+
+        for row in validated_data["items"]:
+            try:
+                product = Product.objects.select_for_update().get(pk=row["product_id"])
+            except Product.DoesNotExist as exc:
+                raise serializers.ValidationError(
+                    {"items": f"Product {row['product_id']} not found."}
+                ) from exc
+
+            if product.status != Product.Status.ACTIVE:
+                raise serializers.ValidationError(
+                    {"items": f"Product {product.name} is not available."}
+                )
+            if product.stock < row["quantity"]:
+                raise serializers.ValidationError(
+                    {
+                        "items": (
+                            f"Insufficient stock for {product.name}. "
+                            f"Available: {product.stock}."
+                        )
+                    }
+                )
+
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=row["quantity"],
+                price=product.price,
+                subtotal=(product.price * Decimal(row["quantity"])).quantize(
+                    Decimal("0.01")
+                ),
+            )
+
+        order.calculate_total()
+        return order
