@@ -1,48 +1,51 @@
 <template>
-  <div class="container mt-5" style="max-width: 420px">
-    <h2>Login</h2>
+  <StoreLayout>
+    <div class="container" style="max-width: 420px">
+      <h2>Login</h2>
 
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+      <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
-    <form @submit.prevent="onSubmit">
-      <div class="mb-3">
-        <label class="form-label" for="email">Email</label>
-        <input
-          id="email"
-          v-model="form.email"
-          type="email"
-          class="form-control"
-          required
-        />
-      </div>
+      <form @submit.prevent="onSubmit">
+        <div class="mb-3">
+          <label class="form-label" for="email">Email</label>
+          <input
+            id="email"
+            v-model="form.email"
+            type="email"
+            class="form-control"
+            required
+          />
+        </div>
 
-      <div class="mb-3">
-        <label class="form-label" for="password">Password</label>
-        <input
-          id="password"
-          v-model="form.password"
-          type="password"
-          class="form-control"
-          required
-          minlength="8"
-        />
-      </div>
+        <div class="mb-3">
+          <label class="form-label" for="password">Password</label>
+          <input
+            id="password"
+            v-model="form.password"
+            type="password"
+            class="form-control"
+            required
+            minlength="8"
+          />
+        </div>
 
-      <button class="btn btn-primary" type="submit" :disabled="loading">
-        {{ loading ? 'Loading...' : 'Login' }}
-      </button>
-    </form>
+        <button class="btn btn-primary" type="submit" :disabled="loading">
+          {{ loading ? 'Loading...' : 'Login' }}
+        </button>
+      </form>
 
-    <p class="mt-3">
-      No account?
-      <router-link :to="{ name: 'register', query: route.query }">Register</router-link>
-    </p>
-  </div>
+      <p class="mt-3">
+        No account?
+        <router-link :to="{ name: 'register', query: route.query }">Register</router-link>
+      </p>
+    </div>
+  </StoreLayout>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import StoreLayout from '../layouts/StoreLayout.vue'
 import $axios from '../axios'
 import API from '../apiUrls'
 

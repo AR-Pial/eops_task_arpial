@@ -85,7 +85,6 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="related")
     def related(self, request, id=None):
-        """Recommend related products via DFS over the category tree."""
         product = self.get_object()
         if not product.category_id:
             return Response([])

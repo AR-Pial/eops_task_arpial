@@ -47,8 +47,8 @@ class StripeStrategy(PaymentStrategy):
         return PaymentInitResult(
             transaction_id=intent["id"],
             status="pending",
-            raw_response=dict(intent),
-            client_secret=intent.get("client_secret"),
+            raw_response=intent.to_dict(),
+            client_secret=intent["client_secret"],
             mock=False,
         )
 
@@ -82,7 +82,7 @@ class StripeStrategy(PaymentStrategy):
         return PaymentInitResult(
             transaction_id=intent["id"],
             status=mapped,
-            raw_response=dict(intent),
+            raw_response=intent.to_dict(),
             mock=False,
         )
 

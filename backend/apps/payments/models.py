@@ -25,7 +25,7 @@ class Payment(models.Model):
         choices=Provider.choices,
         db_index=True,
     )
-    transaction_id = models.CharField(max_length=255, unique=True, db_index=True)
+    transaction_id = models.CharField(max_length=255, unique=True)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -38,12 +38,6 @@ class Payment(models.Model):
 
     class Meta:
         db_table = "payments"
-        indexes = [
-            models.Index(fields=["order"]),
-            models.Index(fields=["provider"]),
-            models.Index(fields=["status"]),
-            models.Index(fields=["transaction_id"]),
-        ]
 
     def __str__(self):
         return f"{self.provider}:{self.transaction_id} ({self.status})"

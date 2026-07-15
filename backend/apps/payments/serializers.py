@@ -6,13 +6,23 @@ from .models import Payment
 
 
 class PaymentSerializer(serializers.ModelSerializer):
-    order_id = serializers.UUIDField(source="order.id", read_only=True)
+    order_number = serializers.IntegerField(source="order.number", read_only=True)
+    order_status = serializers.CharField(source="order.status", read_only=True)
+    amount = serializers.DecimalField(
+        source="order.total_amount",
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+    )
 
     class Meta:
         model = Payment
         fields = (
             "id",
-            "order_id",
+            "order",
+            "order_number",
+            "order_status",
+            "amount",
             "provider",
             "transaction_id",
             "status",
@@ -38,25 +48,57 @@ class CheckoutSerializer(serializers.Serializer):
             "superadmin",
         ):
             raise serializers.ValidationError("Order not found.")
-        if order.status != Order.Status.PENDING:
-            raise serializers.ValidationError("Order is not pending.")
+        if order.status == Order.Status.CANCELED:
+            try:
+                order.reopen_for_payment()
+            except ValueError as exc:
+                raise serializers.ValidationError(str(exc)) from exc
+        elif order.status != Order.Status.PENDING:
+            raise serializers.ValidationError("Order cannot be paid.")
         self.context["order"] = order
         return value
 
 
 class ConfirmPaymentSerializer(serializers.Serializer):
-    payment_id = serializers.UUIDField()
+    payment_id = serializers.UUIDField(required=False)
+    transaction_id = serializers.CharField(required=False, max_length=255)
+    callback_status = serializers.ChoiceField(
+        choices=("success", "failure", "cancel"),
+        required=False,
+    )
 
-    def validate_payment_id(self, value):
+    def validate(self, attrs):
+        payment_id = attrs.get("payment_id")
+        transaction_id = attrs.get("transaction_id")
+        if not payment_id and not transaction_id:
+            raise serializers.ValidationError(
+                "Provide payment_id or transaction_id."
+            )
+
         user = self.context["request"].user
         try:
-            payment = Payment.objects.select_related("order").get(pk=value)
+            if payment_id:
+                payment = Payment.objects.select_related("order").get(pk=payment_id)
+            else:
+                payment = Payment.objects.select_related("order").get(
+                    transaction_id=transaction_id
+                )
         except Payment.DoesNotExist as exc:
-            raise serializers.ValidationError("Payment not found.") from exc
+            raise serializers.ValidationError(
+                {"payment_id": "Payment not found."}
+                if payment_id
+                else {"transaction_id": "Payment not found."}
+            ) from exc
+
         if payment.order.user_id != user.id and getattr(user, "user_type", None) not in (
             "admin",
             "superadmin",
         ):
-            raise serializers.ValidationError("Payment not found.")
+            raise serializers.ValidationError(
+                {"payment_id": "Payment not found."}
+                if payment_id
+                else {"transaction_id": "Payment not found."}
+            )
+
         self.context["payment"] = payment
-        return value
+        return attrs

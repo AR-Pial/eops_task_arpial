@@ -37,6 +37,11 @@ class CheckoutView(APIView):
             payment, meta = PaymentService.checkout(order, provider)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response(
+                {"detail": str(exc) or "Payment provider error."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         data = PaymentSerializer(payment).data
         data.update(meta)
@@ -51,7 +56,13 @@ class ConfirmPaymentView(APIView):
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        payment = PaymentService.confirm(serializer.context["payment"])
+        try:
+            payment = PaymentService.confirm(
+                serializer.context["payment"],
+                callback_status=serializer.validated_data.get("callback_status"),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(PaymentSerializer(payment).data)
 
 

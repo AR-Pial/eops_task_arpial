@@ -5,7 +5,7 @@
       <p v-if="product.category_name" class="small text-muted mb-1">{{ product.category_name }}</p>
       <p class="card-text">{{ product.description }}</p>
       <p>
-        Price: {{ Number(product.price).toFixed(2) }}
+        Price: {{ formatBDT(product.price) }}
         <br />
         Stock: {{ product.stock }}
       </p>
@@ -29,6 +29,8 @@
 </template>
 
 <script setup>
+import { formatBDT } from '../utils/money'
+
 defineProps({
   product: {
     type: Object,

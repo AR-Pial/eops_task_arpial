@@ -147,11 +147,10 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_ALLOW_ALL_ORIGINS = True  # tighten later for Vue/Vercel
+CORS_ALLOW_ALL_ORIGINS = True
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
 
-# Payment providers (leave empty to use local mock flow for checkout confirm)
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 BKASH_APP_KEY = os.getenv("BKASH_APP_KEY", "")

@@ -15,22 +15,22 @@
           </thead>
           <tbody>
             <tr>
-              <td>1</td>
-              <td>129.49</td>
+              <td></td>
+              <td>{{ formatBDT(129.49) }}</td>
               <td><span class="badge text-bg-success">paid</span></td>
               <td><router-link class="link-primary text-decoration-underline" to="/admin/orders/101">View</router-link></td>
               <td>2026-07-10 14:22</td>
             </tr>
             <tr>
-              <td>2</td>
-              <td>119.00</td>
+              <td></td>
+              <td>{{ formatBDT(119) }}</td>
               <td><span class="badge text-bg-warning">pending</span></td>
               <td><router-link class="link-primary text-decoration-underline" to="/admin/orders/102">View</router-link></td>
               <td>2026-07-12 09:05</td>
             </tr>
             <tr>
-              <td>3</td>
-              <td>69.00</td>
+              <td></td>
+              <td>{{ formatBDT(69) }}</td>
               <td><span class="badge text-bg-secondary">canceled</span></td>
               <td><router-link class="link-primary text-decoration-underline" to="/admin/orders/103">View</router-link></td>
               <td>2026-07-08 18:40</td>
@@ -44,6 +44,8 @@
 
 <script setup>
 import AdminLayout from '../../layouts/AdminLayout.vue'
+import { formatBDT } from '../../utils/money'
+import { serialColumnDrawCallback } from '../../utils/dataTableSerial'
 
 const tableOptions = {
   pageLength: 10,
@@ -53,5 +55,6 @@ const tableOptions = {
     { orderable: false, targets: 3 },
     { className: 'text-start', targets: '_all' },
   ],
+  drawCallback: serialColumnDrawCallback(),
 }
 </script>

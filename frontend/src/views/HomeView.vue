@@ -1,13 +1,11 @@
 <template>
-  <div>
-    <Navbar />
-
+  <StoreLayout>
     <div class="container">
-      <section class="mb-4 py-3">
+      <section class="mb-4">
         <h1 class="h3 mb-0">Welcome to E-commerce Ordering &amp; Payment System</h1>
       </section>
 
-      <section id="products" class="pb-4">
+      <section id="products">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <h2 class="mb-0">Products</h2>
           <div class="d-flex align-items-center gap-2">
@@ -39,7 +37,7 @@
 
         <div
           v-if="!loading && productList.length"
-          class="d-flex justify-content-center align-items-center gap-2 mt-3 mb-4"
+          class="d-flex justify-content-center align-items-center gap-2 mt-3"
         >
           <button
             type="button"
@@ -70,12 +68,12 @@
         </div>
       </section>
     </div>
-  </div>
+  </StoreLayout>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import Navbar from '../components/Navbar.vue'
+import StoreLayout from '../layouts/StoreLayout.vue'
 import ProductCard from '../components/ProductCard.vue'
 import { addToCart } from '../cart'
 import $axios from '../axios'
@@ -123,7 +121,7 @@ async function loadProducts() {
   } catch (err) {
     error.value =
       err.response?.data?.detail ||
-      'Could not load products. Is the API running?'
+      'Could not load products. Please try again.'
   } finally {
     loading.value = false
   }

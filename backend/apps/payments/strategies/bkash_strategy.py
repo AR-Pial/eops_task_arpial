@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+import requests
 from django.conf import settings
 
 from .base import PaymentInitResult, PaymentStrategy
@@ -19,12 +20,47 @@ class BkashStrategy(PaymentStrategy):
             and getattr(settings, "BKASH_PASSWORD", "")
         )
 
+    def _base_url(self) -> str:
+        return getattr(
+            settings,
+            "BKASH_BASE_URL",
+            "https://tokenized.sandbox.bka.sh/v1.2.0-beta",
+        )
+
+    def _headers(self, token: str) -> dict[str, str]:
+        return {
+            "Authorization": token,
+            "X-APP-Key": settings.BKASH_APP_KEY,
+            "Content-Type": "application/json",
+        }
+
+    @staticmethod
+    def _map_transaction_status(data: dict[str, Any]) -> str:
+        status_raw = str(
+            data.get("transactionStatus")
+            or data.get("status")
+            or data.get("trxStatus")
+            or ""
+        ).lower()
+        code = str(data.get("statusCode", ""))
+
+        if status_raw in ("completed", "success"):
+            return "success"
+        if status_raw in ("failed", "failure", "cancelled", "canceled", "cancel"):
+            return "failed"
+        if status_raw in ("initiated", "pending"):
+            return "pending"
+        if code == "0000":
+            return "success"
+        if code and code != "0000":
+            return "failed"
+        return "pending"
+
     def initiate_payment(self, order, payment) -> PaymentInitResult:
         if not self._configured():
             tx = f"bkash_mock_{uuid.uuid4().hex[:20]}"
             raw = {
                 "paymentID": tx,
-                "bkashURL": f"https://sandbox.pay.bka.sh/mock/{tx}",
                 "amount": str(order.total_amount),
                 "statusCode": "0000",
                 "mock": True,
@@ -33,52 +69,58 @@ class BkashStrategy(PaymentStrategy):
                 transaction_id=tx,
                 status="pending",
                 raw_response=raw,
-                redirect_url=raw["bkashURL"],
                 mock=True,
             )
 
-        # Real bKash Create Payment uses grant token + create API.
-        # Credentials present: call sandbox/live create endpoint.
-        import requests
+        callback = getattr(settings, "BKASH_CALLBACK_URL", "") or ""
+        if not callback:
+            raise ValueError("bKash is not configured correctly.")
 
-        base = getattr(
-            settings,
-            "BKASH_BASE_URL",
-            "https://tokenized.sandbox.bka.sh/v1.2.0-beta",
-        )
+        base = self._base_url()
         token = self._grant_token(base)
         payload = {
             "mode": "0011",
             "payerReference": str(order.user_id)[:20],
-            "callbackURL": getattr(settings, "BKASH_CALLBACK_URL", ""),
+            "callbackURL": callback,
             "amount": str(order.total_amount),
             "currency": "BDT",
             "intent": "sale",
-            "merchantInvoiceNumber": str(order.id).replace("-", "")[:30],
+            "merchantInvoiceNumber": str(payment.id).replace("-", "")[:30],
         }
         resp = requests.post(
             f"{base}/tokenized/checkout/create",
             json=payload,
-            headers={
-                "Authorization": token,
-                "X-APP-Key": settings.BKASH_APP_KEY,
-                "Content-Type": "application/json",
-            },
+            headers=self._headers(token),
             timeout=30,
         )
-        data = resp.json()
-        tx = data.get("paymentID") or data.get("paymentId") or f"bkash_{uuid.uuid4().hex[:16]}"
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise ValueError(f"bKash create returned invalid JSON ({resp.status_code})") from exc
+
+        if resp.status_code >= 400 or str(data.get("statusCode", "0000")) != "0000":
+            message = (
+                data.get("statusMessage")
+                or data.get("errorMessage")
+                or data.get("message")
+                or f"bKash create failed ({resp.status_code})"
+            )
+            raise ValueError(str(message))
+
+        tx = data.get("paymentID") or data.get("paymentId")
+        redirect = data.get("bkashURL") or data.get("bkashUrl")
+        if not tx or not redirect:
+            raise ValueError("bKash create did not return paymentID/bkashURL.")
+
         return PaymentInitResult(
             transaction_id=tx,
             status="pending",
             raw_response=data,
-            redirect_url=data.get("bkashURL"),
+            redirect_url=redirect,
             mock=False,
         )
 
     def _grant_token(self, base: str) -> str:
-        import requests
-
         resp = requests.post(
             f"{base}/tokenized/checkout/token/grant",
             json={
@@ -92,8 +134,45 @@ class BkashStrategy(PaymentStrategy):
             },
             timeout=30,
         )
-        data = resp.json()
-        return data.get("id_token") or data.get("token") or ""
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise ValueError(f"bKash grant token returned invalid JSON ({resp.status_code})") from exc
+
+        token = data.get("id_token") or data.get("token") or ""
+        if not token:
+            message = (
+                data.get("statusMessage")
+                or data.get("errorMessage")
+                or data.get("msg")
+                or "bKash grant token failed"
+            )
+            raise ValueError(str(message))
+        return token
+
+    def _execute(self, base: str, token: str, payment_id: str) -> dict[str, Any]:
+        resp = requests.post(
+            f"{base}/tokenized/checkout/execute",
+            json={"paymentID": payment_id},
+            headers=self._headers(token),
+            timeout=30,
+        )
+        try:
+            return resp.json()
+        except ValueError as exc:
+            raise ValueError(f"bKash execute returned invalid JSON ({resp.status_code})") from exc
+
+    def _query(self, base: str, token: str, payment_id: str) -> dict[str, Any]:
+        resp = requests.post(
+            f"{base}/tokenized/checkout/payment/status",
+            json={"paymentID": payment_id},
+            headers=self._headers(token),
+            timeout=30,
+        )
+        try:
+            return resp.json()
+        except ValueError as exc:
+            raise ValueError(f"bKash query returned invalid JSON ({resp.status_code})") from exc
 
     def confirm_payment(self, payment) -> PaymentInitResult:
         tx = payment.transaction_id
@@ -106,45 +185,33 @@ class BkashStrategy(PaymentStrategy):
                 mock=True,
             )
 
-        import requests
-
-        base = getattr(
-            settings,
-            "BKASH_BASE_URL",
-            "https://tokenized.sandbox.bka.sh/v1.2.0-beta",
-        )
+        base = self._base_url()
         token = self._grant_token(base)
-        resp = requests.post(
-            f"{base}/tokenized/checkout/execute",
-            json={"paymentID": tx},
-            headers={
-                "Authorization": token,
-                "X-APP-Key": settings.BKASH_APP_KEY,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-        data = resp.json()
-        ok = str(data.get("transactionStatus", "")).lower() in (
-            "completed",
-            "success",
-        ) or data.get("statusCode") == "0000"
+
+        try:
+            data = self._execute(base, token, tx)
+        except (requests.RequestException, ValueError):
+            data = self._query(base, token, tx)
+
+        mapped = self._map_transaction_status(data)
+        if mapped == "pending":
+            try:
+                queried = self._query(base, token, tx)
+                mapped = self._map_transaction_status(queried)
+                data = {"execute": data, "query": queried}
+            except (requests.RequestException, ValueError):
+                pass
+
         return PaymentInitResult(
             transaction_id=tx,
-            status="success" if ok else "failed",
+            status=mapped,
             raw_response=data,
             mock=False,
         )
 
     def handle_webhook(self, payload: dict[str, Any], headers: dict[str, str]) -> PaymentInitResult:
-        tx = payload.get("paymentID") or payload.get("transaction_id") or ""
-        status_raw = str(payload.get("transactionStatus", payload.get("status", ""))).lower()
-        if status_raw in ("completed", "success"):
-            status = "success"
-        elif status_raw in ("failed", "cancelled", "canceled"):
-            status = "failed"
-        else:
-            status = "pending"
+        tx = str(payload.get("paymentID") or payload.get("transaction_id") or "")
+        status = self._map_transaction_status(payload)
         return PaymentInitResult(
             transaction_id=tx,
             status=status,

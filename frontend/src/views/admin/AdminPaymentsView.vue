@@ -17,7 +17,7 @@
           </thead>
           <tbody>
             <tr>
-              <td>1</td>
+              <td></td>
               <td>101</td>
               <td>STRIPE</td>
               <td><code class="small">pi_3MxTestAbc123</code></td>
@@ -26,7 +26,7 @@
               <td>2026-07-10 14:25</td>
             </tr>
             <tr>
-              <td>2</td>
+              <td></td>
               <td>102</td>
               <td>BKASH</td>
               <td><code class="small">TRX987654321</code></td>
@@ -35,7 +35,7 @@
               <td>2026-07-12 09:06</td>
             </tr>
             <tr>
-              <td>3</td>
+              <td></td>
               <td>103</td>
               <td>STRIPE</td>
               <td><code class="small">pi_3MxFailXyz789</code></td>
@@ -52,6 +52,7 @@
 
 <script setup>
 import AdminLayout from '../../layouts/AdminLayout.vue'
+import { serialColumnDrawCallback } from '../../utils/dataTableSerial'
 
 const tableOptions = {
   pageLength: 10,
@@ -61,5 +62,6 @@ const tableOptions = {
     { orderable: false, targets: 5 },
     { className: 'text-start', targets: '_all' },
   ],
+  drawCallback: serialColumnDrawCallback(),
 }
 </script>

@@ -34,12 +34,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(product, index) in products" :key="product.id">
-              <td>{{ index + 1 }}</td>
+            <tr v-for="product in products" :key="product.id">
+              <td></td>
               <td>{{ product.sku }}</td>
               <td>{{ product.name }}</td>
               <td>{{ product.category_name || '—' }}</td>
-              <td>{{ Number(product.price).toFixed(2) }}</td>
+              <td>{{ formatBDT(product.price) }}</td>
               <td>{{ product.stock }}</td>
               <td>
                 <span
@@ -116,7 +116,7 @@
 
               <div class="row">
                 <div class="col-md-6 mb-3">
-                  <label class="form-label" for="price">Price</label>
+                  <label class="form-label" for="price">Price (৳)</label>
                   <input
                     id="price"
                     v-model.number="form.price"
@@ -179,6 +179,8 @@ import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '../../layouts/AdminLayout.vue'
 import $axios from '../../axios'
 import API from '../../apiUrls'
+import { formatBDT } from '../../utils/money'
+import { serialColumnDrawCallback } from '../../utils/dataTableSerial'
 
 const products = ref([])
 const categories = ref([])
@@ -210,6 +212,7 @@ const tableOptions = {
     { orderable: false, targets: 9 },
     { className: 'text-start', targets: '_all' },
   ],
+  drawCallback: serialColumnDrawCallback(),
 }
 
 function formatDate(value) {

@@ -9,6 +9,8 @@ const API = {
   productRelated: (id) => `/api/products/${id}/related/`,
   orders: '/api/orders/',
   orderDetail: (id) => `/api/orders/${id}/`,
+  orderCancel: (id) => `/api/orders/${id}/cancel/`,
+  orderReopen: (id) => `/api/orders/${id}/reopen/`,
   payments: '/api/payments/',
   paymentDetail: (id) => `/api/payments/${id}/`,
   checkout: '/api/payments/checkout/',

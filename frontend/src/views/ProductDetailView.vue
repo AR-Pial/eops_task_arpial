@@ -1,8 +1,6 @@
 <template>
-  <div>
-    <Navbar />
-
-    <div class="container py-3">
+  <StoreLayout>
+    <div class="container">
       <router-link class="btn btn-sm btn-secondary mb-3" to="/#products">Back to products</router-link>
 
       <p v-if="loading" class="text-muted">Loading...</p>
@@ -16,7 +14,7 @@
         <p class="mb-3">{{ product.description }}</p>
 
         <p>
-          Price: <strong>{{ Number(product.price).toFixed(2) }}</strong>
+          Price: <strong>{{ formatBDT(product.price) }}</strong>
         </p>
         <p>
           Stock:
@@ -45,17 +43,18 @@
 
       <p v-else class="text-muted">Product not found.</p>
     </div>
-  </div>
+  </StoreLayout>
 </template>
 
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import Navbar from '../components/Navbar.vue'
+import StoreLayout from '../layouts/StoreLayout.vue'
 import ProductCard from '../components/ProductCard.vue'
 import { addToCart } from '../cart'
 import $axios from '../axios'
 import API from '../apiUrls'
+import { formatBDT } from '../utils/money'
 
 const route = useRoute()
 const product = ref(null)

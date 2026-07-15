@@ -1,5 +1,3 @@
-"""Category tree caching (Redis) + DFS traversal for hierarchy queries."""
-
 from __future__ import annotations
 
 import json
@@ -28,7 +26,6 @@ def _redis_client():
 
 
 def build_category_tree() -> dict[str, Any]:
-    """Build adjacency maps from DB for DFS."""
     rows = list(Category.objects.all().values("id", "name", "parent_id"))
     nodes: dict[str, dict[str, Any]] = {}
     children: dict[str, list[str]] = {ROOT_KEY: []}
@@ -79,7 +76,6 @@ def invalidate_category_tree() -> None:
 
 
 def dfs_collect_descendant_ids(category_id: str, tree: dict[str, Any] | None = None) -> list[str]:
-    """DFS from category_id; returns category_id + all descendants."""
     tree = tree or get_category_tree()
     children = tree.get("children", {})
     root = str(category_id)

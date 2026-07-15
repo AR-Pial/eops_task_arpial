@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 
+from apps.payments.models import Payment
 from apps.products.models import Product
 
 from .models import Order, OrderItem
@@ -10,11 +11,10 @@ from .models import Order, OrderItem
 
 class OrderItemSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="product.name", read_only=True)
-    product_id = serializers.UUIDField(source="product.id", read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ("id", "product_id", "name", "quantity", "price", "subtotal")
+        fields = ("name", "quantity", "price", "subtotal")
 
 
 class OrderItemCreateSerializer(serializers.Serializer):
@@ -22,19 +22,28 @@ class OrderItemCreateSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=1)
 
 
+class OrderPaymentBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ("provider", "transaction_id", "status", "created_at")
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    payments = OrderPaymentBriefSerializer(many=True, read_only=True)
     user_email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
         model = Order
         fields = (
             "id",
+            "number",
             "user",
             "user_email",
             "total_amount",
             "status",
             "items",
+            "payments",
             "created_at",
             "updated_at",
         )

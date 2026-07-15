@@ -19,11 +19,6 @@ class Category(models.Model):
 
     class Meta:
         db_table = "categories"
-        verbose_name_plural = "categories"
-        indexes = [
-            models.Index(fields=["parent"]),
-            models.Index(fields=["name"]),
-        ]
 
     def __str__(self):
         return self.name
@@ -44,7 +39,7 @@ class Product(models.Model):
         db_index=True,
     )
     name = models.CharField(max_length=255)
-    sku = models.CharField(max_length=64, unique=True, db_index=True)
+    sku = models.CharField(max_length=64, unique=True)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
@@ -61,9 +56,6 @@ class Product(models.Model):
     class Meta:
         db_table = "products"
         indexes = [
-            models.Index(fields=["sku"]),
-            models.Index(fields=["status"]),
-            models.Index(fields=["category"]),
             models.Index(fields=["-is_featured", "stock"]),
         ]
 

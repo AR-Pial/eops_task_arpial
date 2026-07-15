@@ -1,7 +1,5 @@
 <template>
-  <div>
-    <Navbar />
-
+  <StoreLayout>
     <div class="container" style="max-width: 520px">
       <h2>Profile</h2>
 
@@ -45,12 +43,12 @@
         </button>
       </form>
     </div>
-  </div>
+  </StoreLayout>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import Navbar from '../components/Navbar.vue'
+import StoreLayout from '../layouts/StoreLayout.vue'
 import $axios from '../axios'
 import API from '../apiUrls'
 

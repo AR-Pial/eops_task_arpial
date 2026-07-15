@@ -2,8 +2,6 @@ from rest_framework.permissions import BasePermission
 
 
 class IsAdminOrSuperAdmin(BasePermission):
-    """Allow only admin / superadmin users."""
-
     def has_permission(self, request, view):
         user = request.user
         return bool(

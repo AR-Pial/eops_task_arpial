@@ -1,4 +1,5 @@
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -16,7 +17,10 @@ class OrderViewSet(
     lookup_field = "id"
 
     def get_queryset(self):
-        qs = Order.objects.prefetch_related("items__product").select_related("user")
+        qs = (
+            Order.objects.prefetch_related("items__product", "payments")
+            .select_related("user")
+        )
         user = self.request.user
         if getattr(user, "user_type", None) in ("admin", "superadmin"):
             return qs.order_by("-created_at")
@@ -35,3 +39,21 @@ class OrderViewSet(
             OrderSerializer(order).data,
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, id=None):
+        order = self.get_object()
+        try:
+            order.mark_canceled()
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(OrderSerializer(order).data)
+
+    @action(detail=True, methods=["post"], url_path="reopen")
+    def reopen(self, request, id=None):
+        order = self.get_object()
+        try:
+            order.reopen_for_payment()
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(OrderSerializer(order).data)

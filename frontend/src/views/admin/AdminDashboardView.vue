@@ -30,7 +30,7 @@
         <div class="card border-0 shadow-sm">
           <div class="card-body">
             <div class="text-muted small">Revenue</div>
-            <div class="fs-4 fw-semibold">129.49</div>
+            <div class="fs-4 fw-semibold">{{ formatBDT(129.49) }}</div>
           </div>
         </div>
       </div>
@@ -40,4 +40,5 @@
 
 <script setup>
 import AdminLayout from '../../layouts/AdminLayout.vue'
+import { formatBDT } from '../../utils/money'
 </script>

@@ -33,7 +33,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         SUPERADMIN = "superadmin", "Superadmin"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(unique=True, db_index=True)
+    email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     phone = models.CharField(max_length=20, blank=True)
@@ -53,9 +53,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = "users"
-        indexes = [
-            models.Index(fields=["email"]),
-        ]
 
     def __str__(self):
         return self.email
