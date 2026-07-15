@@ -30,6 +30,7 @@ class PaymentService:
             order=order,
             provider=provider,
             transaction_id=temp_tx,
+            amount=order.total_amount,
             status=Payment.Status.PENDING,
             raw_response={},
         )

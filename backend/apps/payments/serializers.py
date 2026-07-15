@@ -8,12 +8,6 @@ from .models import Payment
 class PaymentSerializer(serializers.ModelSerializer):
     order_number = serializers.IntegerField(source="order.number", read_only=True)
     order_status = serializers.CharField(source="order.status", read_only=True)
-    amount = serializers.DecimalField(
-        source="order.total_amount",
-        max_digits=12,
-        decimal_places=2,
-        read_only=True,
-    )
 
     class Meta:
         model = Payment

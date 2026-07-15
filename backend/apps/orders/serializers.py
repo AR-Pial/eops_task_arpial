@@ -23,16 +23,10 @@ class OrderItemCreateSerializer(serializers.Serializer):
 
 
 class OrderPaymentBriefSerializer(serializers.ModelSerializer):
-    amount = serializers.DecimalField(
-        source="order.total_amount",
-        max_digits=12,
-        decimal_places=2,
-        read_only=True,
-    )
-
     class Meta:
         model = Payment
         fields = ("provider", "transaction_id", "amount", "status", "created_at")
+        read_only_fields = fields
 
 
 class OrderSerializer(serializers.ModelSerializer):

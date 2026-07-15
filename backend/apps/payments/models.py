@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.db import models
 
@@ -28,6 +29,7 @@ class Payment(models.Model):
         db_index=True,
     )
     transaction_id = models.CharField(max_length=255, unique=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

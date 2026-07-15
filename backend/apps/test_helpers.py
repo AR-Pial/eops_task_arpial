@@ -88,11 +88,13 @@ def make_payment(
     provider: str = Payment.Provider.STRIPE,
     transaction_id: str | None = None,
     status: str = Payment.Status.PENDING,
+    amount=None,
 ) -> Payment:
     return Payment.objects.create(
         order=order,
         provider=provider,
         transaction_id=transaction_id or f"tx_{uuid.uuid4().hex[:20]}",
+        amount=order.total_amount if amount is None else amount,
         status=status,
         raw_response={},
     )
