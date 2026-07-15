@@ -162,6 +162,8 @@ BKASH_BASE_URL = os.getenv(
     "https://tokenized.sandbox.bka.sh/v1.2.0-beta",
 )
 BKASH_CALLBACK_URL = os.getenv("BKASH_CALLBACK_URL", "")
+# Optional shared secret for X-Bkash-Signature HMAC; status is still verified via Query API.
+BKASH_WEBHOOK_SECRET = os.getenv("BKASH_WEBHOOK_SECRET", "")
 
 LOGGING = {
     "version": 1,

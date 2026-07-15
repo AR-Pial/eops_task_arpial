@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
+import logging
 import uuid
 from typing import Any
 
@@ -7,6 +11,8 @@ import requests
 from django.conf import settings
 
 from .base import PaymentInitResult, PaymentStrategy
+
+logger = logging.getLogger(__name__)
 
 
 class BkashStrategy(PaymentStrategy):
@@ -19,6 +25,9 @@ class BkashStrategy(PaymentStrategy):
             and getattr(settings, "BKASH_USERNAME", "")
             and getattr(settings, "BKASH_PASSWORD", "")
         )
+
+    def _webhook_secret(self) -> str:
+        return getattr(settings, "BKASH_WEBHOOK_SECRET", "") or ""
 
     def _base_url(self) -> str:
         return getattr(
@@ -209,6 +218,41 @@ class BkashStrategy(PaymentStrategy):
             mock=False,
         )
 
+    def _verify_webhook_hmac(
+        self, raw_body: bytes | None, headers: dict[str, str]
+    ) -> None:
+        """Optional HMAC gate when BKASH_WEBHOOK_SECRET is set.
+
+        Expects header ``X-Bkash-Signature: sha256=<hex>`` (or bare hex) over the
+        raw request body. bKash may not send this natively — use it when you put a
+        shared secret in front of the endpoint, or for local/provider proxies.
+        """
+        secret = self._webhook_secret()
+        if not secret:
+            return
+
+        signature = (
+            headers.get("X-Bkash-Signature")
+            or headers.get("x-bkash-signature")
+            or headers.get("X-Webhook-Signature")
+            or headers.get("x-webhook-signature")
+            or ""
+        ).strip()
+        if signature.lower().startswith("sha256="):
+            signature = signature[7:].strip()
+
+        if not raw_body or not signature:
+            raise ValueError("Missing bKash webhook signature.")
+
+        expected = hmac.new(
+            secret.encode("utf-8"),
+            raw_body,
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            logger.warning("bKash webhook HMAC verification failed")
+            raise ValueError("Invalid bKash webhook signature.")
+
     def handle_webhook(
         self,
         payload: dict[str, Any],
@@ -216,19 +260,53 @@ class BkashStrategy(PaymentStrategy):
         *,
         raw_body: bytes | None = None,
     ) -> PaymentInitResult:
+        """Accept paymentID from the body only; never trust status in the payload.
+
+        Status is always confirmed via bKash Query Payment API. Optional HMAC
+        (`BKASH_WEBHOOK_SECRET`) rejects forged requests before the API call.
+        """
+        self._verify_webhook_hmac(raw_body, headers)
+
         data = payload or {}
         if raw_body and not data:
-            import json
-
             try:
                 data = json.loads(raw_body)
-            except json.JSONDecodeError:
-                data = {}
-        tx = str(data.get("paymentID") or data.get("transaction_id") or "")
-        status = self._map_transaction_status(data)
+            except json.JSONDecodeError as exc:
+                raise ValueError("Invalid bKash webhook JSON.") from exc
+
+        # Only the id is taken from the caller; status comes from the provider.
+        tx = str(data.get("paymentID") or data.get("paymentId") or data.get("transaction_id") or "").strip()
+        if not tx:
+            raise ValueError("bKash webhook missing paymentID.")
+        if str(tx).startswith("bkash_mock_"):
+            raise ValueError("Mock bKash payments cannot be confirmed via webhook.")
+
+        if not self._configured():
+            raise ValueError("bKash is not configured; cannot verify webhook.")
+
+        try:
+            base = self._base_url()
+            token = self._grant_token(base)
+            provider_data = self._query(base, token, tx)
+            mapped = self._map_transaction_status(provider_data)
+            # If still pending, try execute once (same recovery path as confirm).
+            if mapped == "pending":
+                try:
+                    executed = self._execute(base, token, tx)
+                    mapped = self._map_transaction_status(executed)
+                    provider_data = {"query": provider_data, "execute": executed}
+                except (requests.RequestException, ValueError):
+                    pass
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("bKash webhook provider verification failed tx=%s: %s", tx, exc)
+            raise ValueError("Unable to verify bKash payment with provider.") from exc
+
         return PaymentInitResult(
             transaction_id=tx,
-            status=status,
-            raw_response=data,
+            status=mapped,
+            raw_response={
+                "webhook_payload": data,
+                "provider_verification": provider_data,
+            },
             mock=False,
         )
