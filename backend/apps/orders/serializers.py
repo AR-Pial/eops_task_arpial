@@ -23,15 +23,24 @@ class OrderItemCreateSerializer(serializers.Serializer):
 
 
 class OrderPaymentBriefSerializer(serializers.ModelSerializer):
+    amount = serializers.DecimalField(
+        source="order.total_amount",
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+    )
+
     class Meta:
         model = Payment
-        fields = ("provider", "transaction_id", "status", "created_at")
+        fields = ("provider", "transaction_id", "amount", "status", "created_at")
 
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     payments = OrderPaymentBriefSerializer(many=True, read_only=True)
     user_email = serializers.EmailField(source="user.email", read_only=True)
+    user_first_name = serializers.CharField(source="user.first_name", read_only=True)
+    user_last_name = serializers.CharField(source="user.last_name", read_only=True)
 
     class Meta:
         model = Order
@@ -40,6 +49,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "number",
             "user",
             "user_email",
+            "user_first_name",
+            "user_last_name",
             "total_amount",
             "status",
             "items",

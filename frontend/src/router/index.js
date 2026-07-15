@@ -15,6 +15,7 @@ import AdminOrderDetailView from '../views/admin/AdminOrderDetailView.vue'
 import AdminPaymentsView from '../views/admin/AdminPaymentsView.vue'
 import AdminPaymentDetailView from '../views/admin/AdminPaymentDetailView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
+import PaymentConfirmationView from '../views/PaymentConfirmationView.vue'
 
 const routes = [
   {
@@ -31,6 +32,12 @@ const routes = [
     path: '/checkout',
     name: 'checkout',
     component: CheckoutView,
+  },
+  {
+    path: '/confirmation',
+    name: 'payment-confirmation',
+    component: PaymentConfirmationView,
+    meta: { requiresAuth: true },
   },
   {
     path: '/orders',

@@ -18,7 +18,7 @@
               <th>Order No.</th>
               <th>Amount</th>
               <th>Provider</th>
-              <th>Transaction</th>
+              <th>Transaction ID</th>
               <th>Status</th>
               <th>Details</th>
               <th>Created</th>

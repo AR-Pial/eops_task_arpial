@@ -4,7 +4,6 @@
       <h2>Profile</h2>
 
       <div v-if="loadError" class="alert alert-danger">{{ loadError }}</div>
-      <div v-if="success" class="alert alert-success">Profile updated.</div>
       <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
       <form v-if="!loadError" @submit.prevent="onSubmit">
@@ -51,12 +50,12 @@ import { onMounted, reactive, ref } from 'vue'
 import StoreLayout from '../layouts/StoreLayout.vue'
 import $axios from '../axios'
 import API from '../apiUrls'
+import { showToast } from '../toast'
 
 const fetching = ref(true)
 const loading = ref(false)
 const error = ref('')
 const loadError = ref('')
-const success = ref(false)
 
 const form = reactive({
   email: '',
@@ -99,7 +98,6 @@ async function loadProfile() {
 async function onSubmit() {
   loading.value = true
   error.value = ''
-  success.value = false
 
   try {
     const { data } = await $axios.patch(API.me, {
@@ -110,7 +108,7 @@ async function onSubmit() {
     })
     applyUser(data)
     localStorage.setItem('user', JSON.stringify(data))
-    success.value = true
+    showToast('Profile updated.')
   } catch (err) {
     const payload = err.response?.data
     const first =

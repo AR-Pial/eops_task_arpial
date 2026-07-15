@@ -32,6 +32,21 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class CheckoutResponseSerializer(PaymentSerializer):
+    """Payment row plus provider client fields returned by checkout."""
+
+    client_secret = serializers.CharField(allow_null=True, required=False)
+    redirect_url = serializers.CharField(allow_null=True, required=False)
+    mock = serializers.BooleanField(required=False)
+
+    class Meta(PaymentSerializer.Meta):
+        fields = PaymentSerializer.Meta.fields + (
+            "client_secret",
+            "redirect_url",
+            "mock",
+        )
+
+
 class CheckoutSerializer(serializers.Serializer):
     order_id = serializers.UUIDField()
     provider = serializers.ChoiceField(choices=Payment.Provider.choices)

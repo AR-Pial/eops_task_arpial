@@ -14,13 +14,13 @@ class OrderViewSet(
     viewsets.GenericViewSet,
 ):
     permission_classes = [IsAuthenticated]
+    queryset = Order.objects.select_related("user").prefetch_related(
+        "items__product", "payments"
+    )
     lookup_field = "id"
 
     def get_queryset(self):
-        qs = (
-            Order.objects.prefetch_related("items__product", "payments")
-            .select_related("user")
-        )
+        qs = self.queryset
         user = self.request.user
         if getattr(user, "user_type", None) in ("admin", "superadmin"):
             return qs.order_by("-created_at")

@@ -76,6 +76,7 @@ import { computed, onMounted, ref } from 'vue'
 import StoreLayout from '../layouts/StoreLayout.vue'
 import ProductCard from '../components/ProductCard.vue'
 import { addToCart } from '../cart'
+import { showToast } from '../toast'
 import $axios from '../axios'
 import API from '../apiUrls'
 
@@ -134,6 +135,7 @@ function onCategoryChange() {
 function onAdd(product) {
   addToCart(product)
   window.dispatchEvent(new Event('cart-updated'))
+  showToast(`Added "${product.name}" to cart`)
 }
 
 onMounted(async () => {

@@ -40,7 +40,7 @@ class ProductSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_at", "updated_at", "category_name")
 
-    def get_category_name(self, obj):
+    def get_category_name(self, obj) -> str | None:
         return obj.category.name if obj.category_id else None
 
     def validate_price(self, value):

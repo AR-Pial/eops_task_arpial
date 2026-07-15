@@ -8,7 +8,6 @@
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="success" class="alert alert-success">{{ success }}</div>
 
     <div class="card border-0 shadow-sm">
       <div class="card-body">
@@ -181,13 +180,13 @@ import $axios from '../../axios'
 import API from '../../apiUrls'
 import { formatBDT } from '../../utils/money'
 import { serialColumnDrawCallback } from '../../utils/dataTableSerial'
+import { showToast } from '../../toast'
 
 const products = ref([])
 const categories = ref([])
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
-const success = ref('')
 const formError = ref('')
 const showModal = ref(false)
 const editingId = ref(null)
@@ -291,7 +290,6 @@ async function loadProducts() {
 async function onSave() {
   saving.value = true
   formError.value = ''
-  success.value = ''
 
   const payload = {
     name: form.name.trim(),
@@ -307,10 +305,10 @@ async function onSave() {
   try {
     if (editingId.value) {
       await $axios.put(API.productDetail(editingId.value), payload)
-      success.value = 'Product updated.'
+      showToast('Product updated.')
     } else {
       await $axios.post(API.products, payload)
-      success.value = 'Product created.'
+      showToast('Product created.')
     }
     closeModal()
     await loadProducts()
@@ -324,10 +322,9 @@ async function onSave() {
 async function onDelete(product) {
   if (!window.confirm(`Delete "${product.name}"?`)) return
   error.value = ''
-  success.value = ''
   try {
     await $axios.delete(API.productDetail(product.id))
-    success.value = 'Product deleted.'
+    showToast('Product deleted.')
     await loadProducts()
   } catch (err) {
     error.value = parseApiError(err)

@@ -19,7 +19,6 @@
           <span class="badge" :class="statusClass(selected.status)">{{ selected.status }}</span>
         </p>
         <p>Date: {{ formatDate(selected.created_at) }}</p>
-        <p>Total: <strong>{{ formatBDT(selected.total_amount) }}</strong></p>
 
         <div v-if="selected.status === 'pending'" class="alert alert-warning py-2">
           Payment is not completed yet.
@@ -63,6 +62,12 @@
               <td>{{ formatBDT(item.subtotal) }}</td>
             </tr>
           </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="4" class="text-end">Total</th>
+              <th>{{ formatBDT(selected.total_amount) }}</th>
+            </tr>
+          </tfoot>
         </table>
 
         <h5 class="h6 mt-4">Payments</h5>
@@ -72,7 +77,8 @@
             <tr>
               <th>Serial</th>
               <th>Provider</th>
-              <th>Transaction</th>
+              <th>Transaction ID</th>
+              <th>Amount</th>
               <th>Status</th>
               <th>Created</th>
             </tr>
@@ -82,6 +88,7 @@
               <td>{{ index + 1 }}</td>
               <td class="text-uppercase">{{ payment.provider }}</td>
               <td><code class="small">{{ payment.transaction_id }}</code></td>
+              <td>{{ formatBDT(selected.total_amount) }}</td>
               <td>
                 <span class="badge" :class="paymentStatusClass(payment.status)">
                   {{ payment.status }}
@@ -163,6 +170,7 @@ import $axios from '../axios'
 import API from '../apiUrls'
 import { formatBDT } from '../utils/money'
 import { serialColumnDrawCallback } from '../utils/dataTableSerial'
+import { showToast } from '../toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -226,6 +234,7 @@ async function cancelOrder(order) {
     if (idx !== -1) orders.value[idx] = data
     if (selected.value?.id === order.id) selected.value = data
     tableKey.value += 1
+    showToast('Order canceled.')
   } catch (err) {
     error.value = err.response?.data?.detail || 'Could not cancel order.'
   } finally {

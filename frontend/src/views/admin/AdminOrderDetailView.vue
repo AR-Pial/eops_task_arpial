@@ -14,9 +14,17 @@
         Status:
         <span class="badge" :class="statusClass(order.status)">{{ order.status }}</span>
       </p>
-      <p>Customer: {{ order.user_email || '—' }}</p>
+      <div class="d-flex flex-column flex-lg-row flex-wrap column-gap-4 row-gap-1 mb-3">
+        <div v-if="customerName(order)">
+          <span class="text-muted">Name:</span>
+          {{ customerName(order) }}
+        </div>
+        <div>
+          <span class="text-muted">Email:</span>
+          {{ order.user_email || '—' }}
+        </div>
+      </div>
       <p>Date: {{ formatDate(order.created_at) }}</p>
-      <p>Total: {{ formatBDT(order.total_amount) }}</p>
 
       <h5 class="h6 mt-4">Items</h5>
       <table class="table table-bordered">
@@ -38,6 +46,12 @@
             <td>{{ formatBDT(item.subtotal) }}</td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="4" class="text-end">Total</th>
+            <th>{{ formatBDT(order.total_amount) }}</th>
+          </tr>
+        </tfoot>
       </table>
 
       <h5 class="h6 mt-4">Payments</h5>
@@ -47,7 +61,8 @@
           <tr>
             <th>Serial</th>
             <th>Provider</th>
-            <th>Transaction</th>
+            <th>Transaction ID</th>
+            <th>Amount</th>
             <th>Status</th>
             <th>Created</th>
           </tr>
@@ -57,6 +72,7 @@
             <td>{{ index + 1 }}</td>
             <td class="text-uppercase">{{ payment.provider }}</td>
             <td><code class="small">{{ payment.transaction_id }}</code></td>
+            <td>{{ formatBDT(order.total_amount) }}</td>
             <td>
               <span class="badge" :class="paymentStatusClass(payment.status)">
                 {{ payment.status }}
@@ -95,6 +111,11 @@ function paymentStatusClass(status) {
   if (status === 'success') return 'text-bg-success'
   if (status === 'pending') return 'text-bg-warning'
   return 'text-bg-danger'
+}
+
+function customerName(order) {
+  const name = [order.user_first_name, order.user_last_name].filter(Boolean).join(' ').trim()
+  return name || ''
 }
 
 function formatDate(value) {

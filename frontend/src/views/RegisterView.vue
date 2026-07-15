@@ -43,6 +43,18 @@
           />
         </div>
 
+        <div class="mb-3">
+          <label class="form-label" for="password_confirm">Confirm password</label>
+          <input
+            id="password_confirm"
+            v-model="passwordConfirm"
+            type="password"
+            class="form-control"
+            required
+            minlength="8"
+          />
+        </div>
+
         <button class="btn btn-primary" type="submit" :disabled="loading">
           {{ loading ? 'Loading...' : 'Register' }}
         </button>
@@ -67,6 +79,7 @@ const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
+const passwordConfirm = ref('')
 
 const form = reactive({
   email: '',
@@ -83,8 +96,14 @@ function redirectAfterAuth() {
 }
 
 async function onSubmit() {
-  loading.value = true
   error.value = ''
+
+  if (form.password !== passwordConfirm.value) {
+    error.value = 'Passwords do not match'
+    return
+  }
+
+  loading.value = true
 
   try {
     const { data } = await $axios.post(API.register, { ...form })

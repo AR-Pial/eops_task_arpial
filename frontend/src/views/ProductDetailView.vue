@@ -52,6 +52,7 @@ import { useRoute } from 'vue-router'
 import StoreLayout from '../layouts/StoreLayout.vue'
 import ProductCard from '../components/ProductCard.vue'
 import { addToCart } from '../cart'
+import { showToast } from '../toast'
 import $axios from '../axios'
 import API from '../apiUrls'
 import { formatBDT } from '../utils/money'
@@ -92,11 +93,13 @@ function onAdd() {
   if (!product.value || product.value.stock < 1) return
   addToCart(product.value)
   window.dispatchEvent(new Event('cart-updated'))
+  showToast(`Added "${product.value.name}" to cart`)
 }
 
 function onAddRelated(item) {
   addToCart(item)
   window.dispatchEvent(new Event('cart-updated'))
+  showToast(`Added "${item.name}" to cart`)
 }
 
 onMounted(() => loadProduct(route.params.id))

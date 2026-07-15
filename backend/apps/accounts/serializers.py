@@ -45,3 +45,10 @@ class UserSerializer(serializers.ModelSerializer):
             "date_joined",
         )
         read_only_fields = ("id", "email", "user_type", "date_joined")
+
+
+class TokenAuthResponseSerializer(serializers.Serializer):
+    """OpenAPI shape for register/login responses."""
+
+    token = serializers.CharField()
+    user = UserSerializer()

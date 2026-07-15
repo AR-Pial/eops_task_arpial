@@ -1,12 +1,14 @@
 import logging
 
-from rest_framework import mixins, status, viewsets
+from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Payment
 from .serializers import (
+    CheckoutResponseSerializer,
     CheckoutSerializer,
     ConfirmPaymentSerializer,
     PaymentSerializer,
@@ -19,10 +21,11 @@ logger = logging.getLogger(__name__)
 class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = PaymentSerializer
+    queryset = Payment.objects.select_related("order").all()
     lookup_field = "id"
 
     def get_queryset(self):
-        qs = Payment.objects.select_related("order").order_by("-created_at")
+        qs = self.queryset.order_by("-created_at")
         user = self.request.user
         if getattr(user, "user_type", None) in ("admin", "superadmin"):
             return qs
@@ -32,6 +35,11 @@ class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
 class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=CheckoutSerializer,
+        responses={201: CheckoutResponseSerializer},
+        tags=["payments"],
+    )
     def post(self, request):
         serializer = CheckoutSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -56,6 +64,11 @@ class CheckoutView(APIView):
 class ConfirmPaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=ConfirmPaymentSerializer,
+        responses={200: PaymentSerializer},
+        tags=["payments"],
+    )
     def post(self, request):
         serializer = ConfirmPaymentSerializer(
             data=request.data, context={"request": request}
@@ -81,6 +94,27 @@ class StripeWebhookView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @extend_schema(
+        request=inline_serializer(
+            name="StripeWebhookPayload",
+            fields={
+                "type": serializers.CharField(),
+                "data": serializers.DictField(),
+            },
+        ),
+        responses={200: PaymentSerializer},
+        auth=[],
+        tags=["payments"],
+        examples=[
+            OpenApiExample(
+                "payment_intent.succeeded",
+                value={
+                    "type": "payment_intent.succeeded",
+                    "data": {"object": {"id": "pi_xxx"}},
+                },
+            )
+        ],
+    )
     def post(self, request):
         raw_body = request.body
         headers = {k: v for k, v in request.headers.items()}
@@ -109,6 +143,19 @@ class BkashWebhookView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @extend_schema(
+        request=inline_serializer(
+            name="BkashWebhookPayload",
+            fields={"paymentID": serializers.CharField()},
+        ),
+        responses={200: PaymentSerializer},
+        auth=[],
+        tags=["payments"],
+        description=(
+            "Accepts paymentID only. Status is always re-checked via bKash Query API. "
+            "Optional header X-Bkash-Signature when BKASH_WEBHOOK_SECRET is set."
+        ),
+    )
     def post(self, request):
         raw_body = request.body
         headers = {k: v for k, v in request.headers.items()}

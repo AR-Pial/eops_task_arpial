@@ -1,0 +1,388 @@
+{
+  "info": {
+    "name": "EOPS API",
+    "description": "E-commerce Ordering & Payment System — Auth, Catalog, Orders, Payments (Stripe & bKash).\n\n1. Set `base_url` (default http://127.0.0.1:8000).\n2. Run Auth → Register or Login (saves `token`).\n3. Use Orders / Payments folders for checkout flows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" },
+    { "key": "order_id", "value": "" },
+    { "key": "payment_id", "value": "" },
+    { "key": "product_id", "value": "" },
+    { "key": "transaction_id", "value": "" }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "value", "value": "Token {{token}}", "type": "string" },
+      { "key": "key", "value": "Authorization", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.token) pm.collectionVariables.set('token', j.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"password123\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"Customer\",\n  \"phone\": \"01700000000\",\n  \"address\": \"Dhaka\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register/"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.token) pm.collectionVariables.set('token', j.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@eops.local\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login/"
+          }
+        },
+        {
+          "name": "Me (GET)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me/"
+          }
+        },
+        {
+          "name": "Me (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Updated\",\n  \"phone\": \"01800000000\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/me/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/categories/"
+          }
+        },
+        {
+          "name": "Category tree (DFS cache)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/categories/tree/"
+          }
+        },
+        {
+          "name": "Create category (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Category\",\n  \"parent\": null\n}"
+            },
+            "url": "{{base_url}}/api/categories/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  const rows = Array.isArray(j) ? j : (j.results || []);",
+                  "  if (rows.length) pm.collectionVariables.set('product_id', rows[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/?category=&include_descendants=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""],
+              "query": [
+                { "key": "category", "value": "", "description": "Optional category UUID" },
+                { "key": "include_descendants", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get product",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/products/{{product_id}}/"
+          }
+        },
+        {
+          "name": "Related products",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/products/{{product_id}}/related/"
+          }
+        },
+        {
+          "name": "Create product (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Widget\",\n  \"sku\": \"DEMO-WIDGET-001\",\n  \"description\": \"Sample product\",\n  \"price\": \"499.00\",\n  \"stock\": 25,\n  \"is_featured\": false,\n  \"status\": \"active\",\n  \"category\": null\n}"
+            },
+            "url": "{{base_url}}/api/products/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.id) pm.collectionVariables.set('order_id', j.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product_id\": \"{{product_id}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/orders/"
+          }
+        },
+        {
+          "name": "List orders",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/orders/"
+          }
+        },
+        {
+          "name": "Get order",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/orders/{{order_id}}/"
+          }
+        },
+        {
+          "name": "Cancel order",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/orders/{{order_id}}/cancel/"
+          }
+        },
+        {
+          "name": "Reopen order",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/orders/{{order_id}}/reopen/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Checkout (Stripe)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.id) pm.collectionVariables.set('payment_id', j.id);",
+                  "  if (j.transaction_id) pm.collectionVariables.set('transaction_id', j.transaction_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"provider\": \"stripe\"\n}"
+            },
+            "url": "{{base_url}}/api/payments/checkout/"
+          }
+        },
+        {
+          "name": "Checkout (bKash)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.id) pm.collectionVariables.set('payment_id', j.id);",
+                  "  if (j.transaction_id) pm.collectionVariables.set('transaction_id', j.transaction_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"provider\": \"bkash\"\n}"
+            },
+            "url": "{{base_url}}/api/payments/checkout/"
+          }
+        },
+        {
+          "name": "Confirm payment (by payment_id)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"{{payment_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/payments/confirm/"
+          }
+        },
+        {
+          "name": "Confirm payment (bKash callback)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"callback_status\": \"success\"\n}"
+            },
+            "url": "{{base_url}}/api/payments/confirm/"
+          }
+        },
+        {
+          "name": "List payments",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payments/"
+          }
+        },
+        {
+          "name": "Get payment",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payments/{{payment_id}}/"
+          }
+        },
+        {
+          "name": "Webhook Stripe",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Stripe-Signature", "value": "", "description": "Required when STRIPE_WEBHOOK_SECRET is set" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"{{transaction_id}}\"\n    }\n  }\n}"
+            },
+            "url": "{{base_url}}/api/payments/webhooks/stripe/"
+          }
+        },
+        {
+          "name": "Webhook bKash",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Bkash-Signature", "value": "", "description": "Optional HMAC when BKASH_WEBHOOK_SECRET is set" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentID\": \"{{transaction_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/payments/webhooks/bkash/"
+          }
+        }
+      ]
+    }
+  ]
+}

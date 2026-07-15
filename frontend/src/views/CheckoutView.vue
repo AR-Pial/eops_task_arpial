@@ -149,7 +149,7 @@
               </span>
             </p>
             <p class="small text-muted mb-2">
-              Transaction: {{ paymentResult.transaction_id }}
+              Transaction ID: {{ paymentResult.transaction_id }}
             </p>
 
             <div v-if="showStripeForm" class="mb-3">
@@ -175,7 +175,7 @@
             </button>
           </div>
 
-          <p v-if="info" class="text-success mt-3">{{ info }}</p>
+          <p v-if="info" class="text-muted mt-3">{{ info }}</p>
           <p v-if="error" class="text-danger mt-3">{{ error }}</p>
 
           <div v-if="orderResult.status === 'canceled'" class="mt-3">
@@ -203,6 +203,7 @@ import { cartTotal, clearCart, getCart, removeFromCart, updateQty } from '../car
 import $axios from '../axios'
 import API from '../apiUrls'
 import { formatBDT } from '../utils/money'
+import { showToast } from '../toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -251,6 +252,7 @@ function onQty(item) {
 function onRemove(productId) {
   removeFromCart(productId)
   refresh()
+  showToast('Item removed from cart', { variant: 'secondary' })
 }
 
 function orderBadge(status) {
@@ -263,6 +265,14 @@ function paymentBadge(status) {
   if (status === 'success') return 'text-bg-success'
   if (status === 'pending') return 'text-bg-warning'
   return 'text-bg-danger'
+}
+
+function goToConfirmation(orderId) {
+  if (!orderId) return
+  router.replace({
+    name: 'payment-confirmation',
+    query: { order: String(orderId) },
+  })
 }
 
 function parseApiError(err) {
@@ -319,8 +329,8 @@ async function startPayment(order) {
   paymentResult.value = payment
 
   if (payment.status === 'success') {
-    info.value = 'Payment successful.'
     orderResult.value = { ...order, status: 'paid' }
+    goToConfirmation(order.id)
   } else if (payment.mock) {
     info.value = payingExisting.value
       ? 'Confirm payment to finish.'
@@ -423,7 +433,7 @@ async function payWithStripe() {
       elements,
       redirect: 'if_required',
       confirmParams: {
-        return_url: `${window.location.origin}/checkout`,
+        return_url: `${window.location.origin}/confirmation?order=${orderResult.value?.id || ''}&payment=${paymentResult.value.id}&confirm=1`,
       },
     })
 
@@ -459,12 +469,12 @@ async function confirmPayment({ silentPending = false } = {}) {
     })
     paymentResult.value = { ...paymentResult.value, ...data }
     if (data.status === 'success') {
-      info.value = 'Payment successful.'
       error.value = ''
       if (orderResult.value) {
         orderResult.value = { ...orderResult.value, status: 'paid' }
       }
       teardownStripe()
+      goToConfirmation(orderResult.value?.id || data.order)
     } else if (data.status === 'failed') {
       info.value = ''
       error.value = 'Payment failed. This order has been canceled.'
@@ -512,8 +522,11 @@ async function handleBkashReturn(paymentID, callbackStatus) {
     }
 
     if (data.status === 'success') {
-      info.value = 'Payment successful.'
-    } else if (data.status === 'failed') {
+      goToConfirmation(data.order)
+      return
+    }
+
+    if (data.status === 'failed') {
       info.value = ''
       error.value =
         callbackStatus === 'cancel'
@@ -523,7 +536,10 @@ async function handleBkashReturn(paymentID, callbackStatus) {
       info.value = 'Payment is still pending.'
     }
 
-    router.replace({ name: 'checkout' })
+    router.replace({
+      name: 'payment-confirmation',
+      query: { order: String(data.order) },
+    })
   } catch (err) {
     error.value = parseApiError(err)
   } finally {
@@ -557,9 +573,7 @@ onMounted(async () => {
   try {
     const { data } = await $axios.get(API.orderDetail(orderId))
     if (data.status === 'paid') {
-      error.value = 'This order is already paid.'
-      orderResult.value = data
-      payingExisting.value = false
+      goToConfirmation(data.id)
       return
     }
     if (data.status !== 'canceled') {

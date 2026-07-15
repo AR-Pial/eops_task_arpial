@@ -23,7 +23,7 @@
         <span class="text-uppercase">{{ payment.provider }}</span>
       </p>
       <p>
-        Transaction:
+        Transaction ID:
         <code>{{ payment.transaction_id }}</code>
       </p>
       <p>

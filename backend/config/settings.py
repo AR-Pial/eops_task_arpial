@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "rest_framework",
     "rest_framework.authtoken",
+    "drf_spectacular",
     "corsheaders",
     "apps.accounts",
     "apps.products",
@@ -145,6 +146,24 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "EOPS API",
+    "DESCRIPTION": (
+        "E-commerce Ordering & Payment System.\n\n"
+        "Authenticate with DRF Token auth: register or login, then send "
+        "`Authorization: Token <key>`.\n\n"
+        "In Swagger UI, click **Authorize** and enter `Token <your-key>` "
+        "(include the word Token)."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "Status14bEnum": "apps.payments.models.Payment.Status",
+    },
 }
 
 CORS_ALLOW_ALL_ORIGINS = True

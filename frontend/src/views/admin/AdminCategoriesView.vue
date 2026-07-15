@@ -6,7 +6,6 @@
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <div v-if="success" class="alert alert-success">{{ success }}</div>
 
     <div class="card border-0 shadow-sm">
       <div class="card-body">
@@ -90,12 +89,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import AdminLayout from '../../layouts/AdminLayout.vue'
 import $axios from '../../axios'
 import API from '../../apiUrls'
+import { showToast } from '../../toast'
 
 const categories = ref([])
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
-const success = ref('')
 const formError = ref('')
 const showModal = ref(false)
 const editingId = ref(null)
@@ -165,7 +164,6 @@ async function loadCategories() {
 async function onSave() {
   saving.value = true
   formError.value = ''
-  success.value = ''
   const payload = {
     name: form.name.trim(),
     parent: form.parent || null,
@@ -173,10 +171,10 @@ async function onSave() {
   try {
     if (editingId.value) {
       await $axios.put(API.categoryDetail(editingId.value), payload)
-      success.value = 'Category updated.'
+      showToast('Category updated.')
     } else {
       await $axios.post(API.categories, payload)
-      success.value = 'Category created.'
+      showToast('Category created.')
     }
     closeModal()
     await loadCategories()
@@ -190,10 +188,9 @@ async function onSave() {
 async function onDelete(cat) {
   if (!window.confirm(`Delete category "${cat.name}"?`)) return
   error.value = ''
-  success.value = ''
   try {
     await $axios.delete(API.categoryDetail(cat.id))
-    success.value = 'Category deleted.'
+    showToast('Category deleted.')
     await loadCategories()
   } catch (err) {
     error.value = parseApiError(err)
