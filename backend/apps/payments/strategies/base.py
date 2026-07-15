@@ -26,5 +26,11 @@ class PaymentStrategy(ABC):
     def confirm_payment(self, payment) -> PaymentInitResult:
         ...
 
-    def handle_webhook(self, payload: dict[str, Any], headers: dict[str, str]) -> PaymentInitResult:
+    def handle_webhook(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+        *,
+        raw_body: bytes | None = None,
+    ) -> PaymentInitResult:
         raise NotImplementedError

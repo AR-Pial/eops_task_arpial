@@ -27,6 +27,8 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    """Application user (email-unique) for auth, orders, and payments."""
+
     class UserType(models.TextChoices):
         CUSTOMER = "customer", "Customer"
         ADMIN = "admin", "Admin"
@@ -53,6 +55,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = "users"
+        indexes = [
+            models.Index(fields=["user_type", "date_joined"]),
+        ]
 
     def __str__(self):
         return self.email

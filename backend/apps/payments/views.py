@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -10,6 +12,8 @@ from .serializers import (
     PaymentSerializer,
 )
 from .services import PaymentService
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -38,6 +42,7 @@ class CheckoutView(APIView):
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
+            logger.exception("Checkout provider error order=%s provider=%s", order.id, provider)
             return Response(
                 {"detail": str(exc) or "Payment provider error."},
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -63,6 +68,12 @@ class ConfirmPaymentView(APIView):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.exception("Confirm payment error")
+            return Response(
+                {"detail": str(exc) or "Payment confirmation failed."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response(PaymentSerializer(payment).data)
 
 
@@ -71,11 +82,24 @@ class StripeWebhookView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        payment = PaymentService.apply_webhook(
-            "stripe",
-            request.data if isinstance(request.data, dict) else {},
-            {k: v for k, v in request.headers.items()},
-        )
+        raw_body = request.body
+        headers = {k: v for k, v in request.headers.items()}
+        try:
+            payment = PaymentService.apply_webhook(
+                "stripe",
+                request.data if isinstance(request.data, dict) else {},
+                headers,
+                raw_body=raw_body,
+            )
+        except ValueError as exc:
+            logger.warning("Stripe webhook rejected: %s", exc)
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception("Stripe webhook failed")
+            return Response(
+                {"detail": "Webhook processing failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         if not payment:
             return Response({"detail": "ignored"}, status=status.HTTP_200_OK)
         return Response(PaymentSerializer(payment).data)
@@ -86,11 +110,23 @@ class BkashWebhookView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        payment = PaymentService.apply_webhook(
-            "bkash",
-            request.data if isinstance(request.data, dict) else {},
-            {k: v for k, v in request.headers.items()},
-        )
+        raw_body = request.body
+        headers = {k: v for k, v in request.headers.items()}
+        try:
+            payment = PaymentService.apply_webhook(
+                "bkash",
+                request.data if isinstance(request.data, dict) else {},
+                headers,
+                raw_body=raw_body,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception("bKash webhook failed")
+            return Response(
+                {"detail": "Webhook processing failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         if not payment:
             return Response({"detail": "ignored"}, status=status.HTTP_200_OK)
         return Response(PaymentSerializer(payment).data)

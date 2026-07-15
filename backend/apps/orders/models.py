@@ -6,6 +6,8 @@ from django.db import models, transaction
 
 
 class Order(models.Model):
+    """Customer order with line items, totals, and payment-driven status."""
+
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PAID = "paid", "Paid"
@@ -69,7 +71,8 @@ class Order(models.Model):
             order = Order.objects.select_for_update().get(pk=self.pk)
             if order.status == Order.Status.PAID:
                 return
-            for item in order.items.select_related("product"):
+            # Lock products in stable PK order to avoid deadlocks under concurrency.
+            for item in order.items.select_related("product").order_by("product_id"):
                 item.product.reduce_stock(item.quantity)
             order.status = Order.Status.PAID
             order.save(update_fields=["status", "updated_at"])

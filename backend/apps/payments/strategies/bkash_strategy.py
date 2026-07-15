@@ -209,12 +209,26 @@ class BkashStrategy(PaymentStrategy):
             mock=False,
         )
 
-    def handle_webhook(self, payload: dict[str, Any], headers: dict[str, str]) -> PaymentInitResult:
-        tx = str(payload.get("paymentID") or payload.get("transaction_id") or "")
-        status = self._map_transaction_status(payload)
+    def handle_webhook(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+        *,
+        raw_body: bytes | None = None,
+    ) -> PaymentInitResult:
+        data = payload or {}
+        if raw_body and not data:
+            import json
+
+            try:
+                data = json.loads(raw_body)
+            except json.JSONDecodeError:
+                data = {}
+        tx = str(data.get("paymentID") or data.get("transaction_id") or "")
+        status = self._map_transaction_status(data)
         return PaymentInitResult(
             transaction_id=tx,
             status=status,
-            raw_response=payload,
+            raw_response=data,
             mock=False,
         )

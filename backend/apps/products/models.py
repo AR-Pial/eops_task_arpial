@@ -1,11 +1,13 @@
 import uuid
 
-from django.db import models
+from django.db import models, transaction
 
 
 class Category(models.Model):
+    """Hierarchical product category (self-referential parent tree)."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, db_index=True)
     parent = models.ForeignKey(
         "self",
         null=True,
@@ -19,12 +21,17 @@ class Category(models.Model):
 
     class Meta:
         db_table = "categories"
+        indexes = [
+            models.Index(fields=["parent", "name"]),
+        ]
 
     def __str__(self):
         return self.name
 
 
 class Product(models.Model):
+    """Sellable catalog item with stock and active/inactive status."""
+
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
         INACTIVE = "inactive", "Inactive"
@@ -63,9 +70,13 @@ class Product(models.Model):
         return f"{self.name} ({self.sku})"
 
     def reduce_stock(self, quantity: int) -> None:
+        """Atomically reduce stock under a row lock to prevent oversell."""
         if quantity <= 0:
             raise ValueError("Quantity must be positive.")
-        if self.stock < quantity:
-            raise ValueError("Insufficient stock.")
-        self.stock -= quantity
-        self.save(update_fields=["stock", "updated_at"])
+        with transaction.atomic():
+            product = Product.objects.select_for_update().get(pk=self.pk)
+            if product.stock < quantity:
+                raise ValueError("Insufficient stock.")
+            product.stock -= quantity
+            product.save(update_fields=["stock", "updated_at"])
+            self.stock = product.stock

@@ -4,6 +4,8 @@ from django.db import models
 
 
 class Payment(models.Model):
+    """Provider-agnostic payment record linked to an order."""
+
     class Provider(models.TextChoices):
         STRIPE = "stripe", "Stripe"
         BKASH = "bkash", "bKash"

@@ -26,7 +26,6 @@ class PaymentSerializer(serializers.ModelSerializer):
             "provider",
             "transaction_id",
             "status",
-            "raw_response",
             "created_at",
             "updated_at",
         )

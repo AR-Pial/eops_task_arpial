@@ -85,11 +85,18 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="related")
     def related(self, request, id=None):
+        """Recommend products via DFS over the cached category hierarchy."""
         product = self.get_object()
         if not product.category_id:
             return Response([])
 
-        category_ids = dfs_collect_descendant_ids(str(product.category_id))
+        tree = get_category_tree()
+        category_id = str(product.category_id)
+        # Prefer the parent subtree (siblings + descendants); fall back to self.
+        parent_id = tree.get("nodes", {}).get(category_id, {}).get("parent_id")
+        root_id = parent_id or category_id
+        category_ids = dfs_collect_descendant_ids(root_id, tree)
+
         related = (
             Product.objects.filter(
                 category_id__in=category_ids,
