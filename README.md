@@ -133,7 +133,14 @@ Cancel or fail on the sandbox page to exercise failed/canceled order handling an
 | **Mock** | Leave `STRIPE_SECRET_KEY` empty → checkout shows **Confirm payment** (no card form) |
 | **Test (real Elements)** | Set `STRIPE_SECRET_KEY=sk_test_…` and `VITE_STRIPE_PUBLISHABLE_KEY=pk_test_…` |
 
-Stripe test card (Elements): `4242 4242 4242 4242`, any future expiry, any CVC, any postal code.
+**Test cards** (use in Stripe Elements; any future expiry, any CVC, any postal code):
+
+| Scenario | Card number |
+|----------|-------------|
+| Success | `4242 4242 4242 4242` |
+| Decline | `4000 0000 0000 0002` |
+| Insufficient funds | `4000 0000 0000 9995` |
+| Requires 3D Secure | `4000 0025 0000 3155` |
 
 Optional webhooks:
 
