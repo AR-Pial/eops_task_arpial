@@ -25,7 +25,9 @@ eops/
 ├── frontend/                # Vue 3 storefront + admin UI
 │   └── .env.example
 ├── docs/
-│   ├── 4.1-documentation.md
+│   ├── 4.1-documentation.md          # Architecture, ERD, API, payment diagrams
+│   ├── environment-and-ngrok.md      # Env vars + local ngrok webhook tunnel
+│   ├── project-report.md             # Assessment project report (paste → Google Doc)
 │   └── EOPS.postman_collection.json
 └── docker-compose.yml
 ```
@@ -175,6 +177,29 @@ npm run dev
 
 API secrets stay in `.env` (gitignored). `.env.example` already includes official **bKash sandbox** credentials so reviewers can test the real sandbox UI without requesting merchant access. Put your own Stripe **test** keys in `.env` only — never commit real secrets. Get test keys from the [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys) (test mode).
 
+**Full env + ngrok guide:** [`docs/environment-and-ngrok.md`](docs/environment-and-ngrok.md)
+
+### Local ngrok (provider webhooks)
+
+Stripe / bKash cannot reach `http://127.0.0.1:8000` from the internet. Tunnel the API:
+
+```bash
+# API already running on :8000
+ngrok http 8000
+# → https://<id>.ngrok-free.app
+```
+
+1. Add the ngrok hostname to `ALLOWED_HOSTS` in `backend/.env` and restart the API.
+2. Stripe Dashboard (test) webhook URL:  
+   `https://<id>.ngrok-free.app/api/payments/webhooks/stripe/`  
+   Copy `whsec_…` → `STRIPE_WEBHOOK_SECRET`.
+3. Optional bKash notification URL:  
+   `https://<id>.ngrok-free.app/api/payments/webhooks/bkash/`
+
+Stripe-only alternative (no ngrok): `stripe listen --forward-to localhost:8000/api/payments/webhooks/stripe/`.
+
+Step-by-step, troubleshooting, and topology: [`docs/environment-and-ngrok.md`](docs/environment-and-ngrok.md).
+
 ## Quick test guide (reviewers)
 
 With API + Vite running (see **5-minute reviewer path**):
@@ -287,10 +312,14 @@ Auth uses DRF **TokenAuthentication**. After register/login, send `Authorization
 - **Strategy pattern:** `PaymentStrategy` + factory — add providers without changing order core
 - **DFS + cache:** Category tree DFS for filters/related products; tree cached in Redis
 
-## 4.1 Documentation
+## 4.1 Documentation / submission
 
-Full assessment docs (architecture diagram, ERD, payment sequence diagrams, API reference):
+| Deliverable | Link |
+|-------------|------|
+| Architecture, ERD, payment flows, API reference | [`docs/4.1-documentation.md`](docs/4.1-documentation.md) |
+| Environment config + **ngrok** setup | [`docs/environment-and-ngrok.md`](docs/environment-and-ngrok.md) |
+| Project report (copy into Google Doc for the form) | [`docs/project-report.md`](docs/project-report.md) |
+| Postman | [`docs/EOPS.postman_collection.json`](docs/EOPS.postman_collection.json) |
+| Live OpenAPI | Swagger `/api/docs/`, schema `/api/schema/`, ReDoc `/api/redoc/` |
 
-- [`docs/4.1-documentation.md`](docs/4.1-documentation.md)
-- Postman: import [`docs/EOPS.postman_collection.json`](docs/EOPS.postman_collection.json) → register/login → set the returned token on the collection (or requests) as `Authorization: Token <key>`
-- Live OpenAPI: Swagger `/api/docs/`, schema `/api/schema/`, ReDoc `/api/redoc/`
+Postman: import the collection → register/login → set `Authorization: Token <key>` on requests.

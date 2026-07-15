@@ -41,7 +41,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       REDIS_URL: redis://redis:6379/0
-      ALLOWED_HOSTS: localhost,127.0.0.1,web
+      # ALLOWED_HOSTS comes from backend/.env (include ngrok host + `web` for Compose)
       DEBUG: "True"
     depends_on:
       db:
