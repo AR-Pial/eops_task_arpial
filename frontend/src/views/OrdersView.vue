@@ -47,7 +47,7 @@
         <table class="table table-bordered">
           <thead>
             <tr>
-              <th>#</th>
+              <th>Serial</th>
               <th>Product</th>
               <th>Qty</th>
               <th>Price</th>
@@ -70,7 +70,7 @@
         <table v-else class="table table-bordered">
           <thead>
             <tr>
-              <th>#</th>
+              <th>Serial</th>
               <th>Provider</th>
               <th>Transaction</th>
               <th>Status</th>

@@ -21,7 +21,7 @@
         >
           <thead>
             <tr>
-              <th>#</th>
+              <th>Serial</th>
               <th>SKU</th>
               <th>Name</th>
               <th>Category</th>
@@ -157,7 +157,7 @@
                   type="checkbox"
                 />
                 <label class="form-check-label" for="is_featured">
-                  Featured (show first in store)
+                  Featured
                 </label>
               </div>
             </div>

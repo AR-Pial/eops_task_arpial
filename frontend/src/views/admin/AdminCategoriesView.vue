@@ -14,7 +14,7 @@
         <table v-else class="table table-striped align-middle mb-0">
           <thead>
             <tr>
-              <th>#</th>
+              <th>Serial</th>
               <th>Name</th>
               <th>Parent</th>
               <th>Actions</th>

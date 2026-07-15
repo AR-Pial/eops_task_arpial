@@ -1,49 +1,37 @@
 <template>
   <AdminLayout>
-    <h2 class="h4 mb-3">Payment #{{ id }}</h2>
+    <h2 class="h4 mb-3">Payment details</h2>
 
     <router-link class="btn btn-sm btn-secondary mb-3" to="/admin/payments">Back</router-link>
 
-    <div v-if="id === '1'">
-      <p>Order: #101</p>
-      <p>Provider: STRIPE</p>
-      <p>Transaction: <code>pi_3MxTestAbc123</code></p>
-      <p>Status: <span class="badge text-bg-success">success</span></p>
-      <p>Created: 2026-07-10 14:25</p>
-      <h3 class="h6 mt-3">Raw response</h3>
-      <pre class="bg-light border p-3 rounded small mb-0">{
-  "id": "pi_3MxTestAbc123",
-  "status": "succeeded",
-  "amount": 12949
-}</pre>
-    </div>
+    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <p v-else-if="loading" class="text-muted">Loading...</p>
 
-    <div v-else-if="id === '2'">
-      <p>Order: #102</p>
-      <p>Provider: BKASH</p>
-      <p>Transaction: <code>TRX987654321</code></p>
-      <p>Status: <span class="badge text-bg-warning">pending</span></p>
-      <p>Created: 2026-07-12 09:06</p>
-      <h3 class="h6 mt-3">Raw response</h3>
-      <pre class="bg-light border p-3 rounded small mb-0">{
-  "transactionStatus": "Initiated",
-  "trxID": "TRX987654321",
-  "amount": "119.00"
-}</pre>
-    </div>
-
-    <div v-else-if="id === '3'">
-      <p>Order: #103</p>
-      <p>Provider: STRIPE</p>
-      <p>Transaction: <code>pi_3MxFailXyz789</code></p>
-      <p>Status: <span class="badge text-bg-danger">failed</span></p>
-      <p>Created: 2026-07-08 18:41</p>
-      <h3 class="h6 mt-3">Raw response</h3>
-      <pre class="bg-light border p-3 rounded small mb-0">{
-  "id": "pi_3MxFailXyz789",
-  "status": "failed",
-  "amount": 6900
-}</pre>
+    <div v-else-if="payment">
+      <p>
+        Order No.:
+        <router-link
+          class="link-primary text-decoration-underline"
+          :to="`/admin/orders/${payment.order}`"
+        >
+          {{ payment.order_number }}
+        </router-link>
+      </p>
+      <p>Amount: {{ formatBDT(payment.amount) }}</p>
+      <p>
+        Provider:
+        <span class="text-uppercase">{{ payment.provider }}</span>
+      </p>
+      <p>
+        Transaction:
+        <code>{{ payment.transaction_id }}</code>
+      </p>
+      <p>
+        Status:
+        <span class="badge" :class="statusClass(payment.status)">{{ payment.status }}</span>
+      </p>
+      <p>Created: {{ formatDate(payment.created_at) }}</p>
+      <p>Updated: {{ formatDate(payment.updated_at) }}</p>
     </div>
 
     <p v-else class="text-muted">Payment not found.</p>
@@ -51,10 +39,48 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminLayout from '../../layouts/AdminLayout.vue'
+import $axios from '../../axios'
+import API from '../../apiUrls'
+import { formatBDT } from '../../utils/money'
 
 const route = useRoute()
-const id = computed(() => String(route.params.id))
+const payment = ref(null)
+const loading = ref(true)
+const error = ref('')
+
+function statusClass(status) {
+  if (status === 'success') return 'text-bg-success'
+  if (status === 'pending') return 'text-bg-warning'
+  return 'text-bg-danger'
+}
+
+function formatDate(value) {
+  if (!value) return ''
+  return new Date(value).toLocaleString()
+}
+
+async function loadPayment(id) {
+  loading.value = true
+  error.value = ''
+  payment.value = null
+  try {
+    const { data } = await $axios.get(API.paymentDetail(id))
+    payment.value = data
+  } catch (err) {
+    error.value = err.response?.data?.detail || 'Could not load payment.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => loadPayment(route.params.id))
+watch(
+  () => route.params.id,
+  (id) => {
+    if (id) loadPayment(id)
+  },
+)
 </script>

@@ -21,7 +21,7 @@
           <table v-if="orderResult.items?.length" class="table table-bordered">
             <thead>
               <tr>
-                <th>#</th>
+                <th>Serial</th>
                 <th>Product</th>
                 <th>Qty</th>
                 <th>Price</th>
@@ -44,7 +44,7 @@
           <table class="table table-bordered">
             <thead>
               <tr>
-                <th>#</th>
+                <th>Serial</th>
                 <th>Product</th>
                 <th>Price</th>
                 <th>Qty</th>

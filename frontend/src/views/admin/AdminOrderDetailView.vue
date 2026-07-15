@@ -1,17 +1,28 @@
 <template>
   <AdminLayout>
-    <h2 class="h4 mb-3">Order #{{ id }}</h2>
+    <h2 class="h4 mb-3">
+      Order No. {{ order?.number || '—' }}
+    </h2>
 
     <router-link class="btn btn-sm btn-secondary mb-3" to="/admin/orders">Back</router-link>
 
-    <div v-if="id === '101'">
-      <p>Status: <span class="badge text-bg-success">paid</span></p>
-      <p>Date: 2026-07-10 14:22</p>
-      <p>Total: {{ formatBDT(129.49) }}</p>
+    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <p v-else-if="loading" class="text-muted">Loading...</p>
+
+    <div v-else-if="order">
+      <p>
+        Status:
+        <span class="badge" :class="statusClass(order.status)">{{ order.status }}</span>
+      </p>
+      <p>Customer: {{ order.user_email || '—' }}</p>
+      <p>Date: {{ formatDate(order.created_at) }}</p>
+      <p>Total: {{ formatBDT(order.total_amount) }}</p>
+
+      <h5 class="h6 mt-4">Items</h5>
       <table class="table table-bordered">
         <thead>
           <tr>
-            <th>#</th>
+            <th>Serial</th>
             <th>Product</th>
             <th>Qty</th>
             <th>Price</th>
@@ -19,71 +30,39 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>1</td>
-            <td>Wireless Headphones</td>
-            <td>1</td>
-            <td>{{ formatBDT(89.99) }}</td>
-            <td>{{ formatBDT(89.99) }}</td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td>USB-C Hub</td>
-            <td>1</td>
-            <td>{{ formatBDT(39.5) }}</td>
-            <td>{{ formatBDT(39.5) }}</td>
+          <tr v-for="(item, index) in order.items" :key="index">
+            <td>{{ index + 1 }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ formatBDT(item.price) }}</td>
+            <td>{{ formatBDT(item.subtotal) }}</td>
           </tr>
         </tbody>
       </table>
-    </div>
 
-    <div v-else-if="id === '102'">
-      <p>Status: <span class="badge text-bg-warning">pending</span></p>
-      <p>Date: 2026-07-12 09:05</p>
-      <p>Total: {{ formatBDT(119) }}</p>
-      <table class="table table-bordered">
+      <h5 class="h6 mt-4">Payments</h5>
+      <p v-if="!order.payments?.length" class="text-muted small">No payments for this order.</p>
+      <table v-else class="table table-bordered">
         <thead>
           <tr>
-            <th>#</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>Subtotal</th>
+            <th>Serial</th>
+            <th>Provider</th>
+            <th>Transaction</th>
+            <th>Status</th>
+            <th>Created</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>1</td>
-            <td>Mechanical Keyboard</td>
-            <td>1</td>
-            <td>{{ formatBDT(119) }}</td>
-            <td>{{ formatBDT(119) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-else-if="id === '103'">
-      <p>Status: <span class="badge text-bg-secondary">canceled</span></p>
-      <p>Date: 2026-07-08 18:40</p>
-      <p>Total: {{ formatBDT(69) }}</p>
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>Subtotal</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1</td>
-            <td>Webcam HD</td>
-            <td>1</td>
-            <td>{{ formatBDT(69) }}</td>
-            <td>{{ formatBDT(69) }}</td>
+          <tr v-for="(payment, index) in order.payments" :key="index">
+            <td>{{ index + 1 }}</td>
+            <td class="text-uppercase">{{ payment.provider }}</td>
+            <td><code class="small">{{ payment.transaction_id }}</code></td>
+            <td>
+              <span class="badge" :class="paymentStatusClass(payment.status)">
+                {{ payment.status }}
+              </span>
+            </td>
+            <td>{{ formatDate(payment.created_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -94,11 +73,54 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminLayout from '../../layouts/AdminLayout.vue'
+import $axios from '../../axios'
+import API from '../../apiUrls'
 import { formatBDT } from '../../utils/money'
 
 const route = useRoute()
-const id = computed(() => String(route.params.id))
+const order = ref(null)
+const loading = ref(true)
+const error = ref('')
+
+function statusClass(status) {
+  if (status === 'paid') return 'text-bg-success'
+  if (status === 'pending') return 'text-bg-warning'
+  return 'text-bg-secondary'
+}
+
+function paymentStatusClass(status) {
+  if (status === 'success') return 'text-bg-success'
+  if (status === 'pending') return 'text-bg-warning'
+  return 'text-bg-danger'
+}
+
+function formatDate(value) {
+  if (!value) return ''
+  return new Date(value).toLocaleString()
+}
+
+async function loadOrder(id) {
+  loading.value = true
+  error.value = ''
+  order.value = null
+  try {
+    const { data } = await $axios.get(API.orderDetail(id))
+    order.value = data
+  } catch (err) {
+    error.value = err.response?.data?.detail || 'Could not load order.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => loadOrder(route.params.id))
+watch(
+  () => route.params.id,
+  (id) => {
+    if (id) loadOrder(id)
+  },
+)
 </script>
